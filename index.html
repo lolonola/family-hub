@@ -271,7 +271,7 @@ if (isParent) {
 
     const label = document.createElement("label");
     label.appendChild(checkbox);
-    label.textContent = " " + item.name;
+    label.appendChild(document.createTextNode(" " + item.name));
     label.style.textDecoration = checkbox.checked ? "line-through" : "none";
 
     listItem.appendChild(label);
