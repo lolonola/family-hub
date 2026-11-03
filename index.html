@@ -295,9 +295,35 @@ for (let hour = 7; hour <= 22; hour++) {
   for (let day = 0; day < 7; day++) {
     const timeSlot = document.createElement("div");
     timeSlot.className = "calendar-time-slot";
+    timeSlot.dataset.day = day;
+    timeSlot.dataset.hour = hour;
+    timeSlot.id = `calendar-slot-${day}-${hour}`;
     calendarGrid.appendChild(timeSlot);
   }
 }
+      document.getElementById("add-event-button").addEventListener("click", () => {
+  const title = document.getElementById("event-title").value.trim();
+  const date = document.getElementById("event-date").value;
+  const time = document.getElementById("event-time").value;
+
+  if (!title || !date || !time) {
+    alert("Please enter an event name, date, and time.");
+    return;
+  }
+  const eventDate = new Date(`${date}T${time}`);
+  const eventHour = eventDate.getHours();
+  const eventDay = (eventDate.getDay() + 6) % 7;
+  const eventSlot = document.getElementById(
+` calendar-slot-${eventDay}-${eventHour}`);
+  if (!eventSlot) {
+  alert("Please choose a time between 7:00 AM and 10:00 PM.");
+  return;
+}
+  const eventElement = document.createElement("div");
+eventElement.className = "calendar-event";
+eventElement.textContent = `${time} ${title}`;
+eventSlot.appendChild(eventElement);
+});
       document.getElementById("add-grocery-button").addEventListener("click", async () => {
   const input = document.getElementById("grocery-input");
   const item = input.value.trim().replace(/^./, char => char.toUpperCase());
@@ -587,6 +613,12 @@ document.getElementById("clear-purchased-button").addEventListener("click", asyn
   <button id="calendar-prev-week" type="button">← Previous Week</button>
   <button id="calendar-today" type="button">Today</button>
   <button id="calendar-next-week" type="button">Next Week →</button>
+</div>
+  <div id="calendar-event-form">
+  <input type="text" id="event-title" placeholder="Event name">
+  <input type="date" id="event-date">
+  <input type="time" id="event-time">
+  <button type="button" id="add-event-button">Add Event</button>
 </div>
 <div id="weekly-calendar">
   <div class="calendar-header">
