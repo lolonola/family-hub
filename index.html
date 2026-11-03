@@ -314,8 +314,7 @@ for (let hour = 7; hour <= 22; hour++) {
   const eventDate = new Date(`${date}T${time}`);
   const eventHour = eventDate.getHours();
   const eventDay = (eventDate.getDay() + 6) % 7;
-  const eventSlot = document.getElementById(
-` calendar-slot-${eventDay}-${eventHour}`);
+  const eventSlot = document.querySelector(`[data-day="${eventDay}"][data-hour="${eventHour}"]`); calendar-slot-${eventDay}-${eventHour}`);
   if (!eventSlot) {
   alert("Please choose a time between 7:00 AM and 10:00 PM.");
   return;
