@@ -6,6 +6,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Family Hub</title>
   <style>
+    #weekly-calendar {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+}
+
+.calendar-header,
+#calendar-time-grid {
+  display: grid;
+  grid-template-columns: 75px repeat(7, minmax(90px, 1fr));
+  min-width: 705px;
+}
+
+.calendar-header {
+  background: #e8edf5;
+  font-weight: bold;
+  text-align: center;
+}
+
+.calendar-header > div {
+  padding: 12px 4px;
+  border-right: 1px solid #ddd;
+}
+
+#calendar-time-grid > div {
+  min-height: 55px;
+  padding: 6px;
+  border-top: 1px solid #ddd;
+  border-right: 1px solid #eee;
+  box-sizing: border-box;
+}
+
+.calendar-time-slot {
+  background: #fff;
+}
     #grocery-list {
   list-style: none;
   padding-left: 0;
@@ -205,6 +241,24 @@ if (isParent) {
     document.getElementById("login-message").textContent = "Sign out failed. Please try again.";
   }
 });
+      const calendarGrid = document.getElementById("calendar-time-grid");
+
+for (let hour = 7; hour <= 22; hour++) {
+  const timeLabel = document.createElement("div");
+  timeLabel.textContent = new Date(2026, 0, 1, hour)
+    .toLocaleTimeString("en-US", {
+      hour: "numeric",
+      hour12: true
+    });
+
+  calendarGrid.appendChild(timeLabel);
+
+  for (let day = 0; day < 7; day++) {
+    const timeSlot = document.createElement("div");
+    timeSlot.className = "calendar-time-slot";
+    calendarGrid.appendChild(timeSlot);
+  }
+}
       document.getElementById("add-grocery-button").addEventListener("click", async () => {
   const input = document.getElementById("grocery-input");
   const item = input.value.trim().replace(/^./, char => char.toUpperCase());
@@ -490,7 +544,19 @@ document.getElementById("clear-purchased-button").addEventListener("click", asyn
   <h2>Family Dashboard</h2>
     <h3>Family Calendar</h3>
 <div id="family-calendar">
-  <p>Calendar coming soon.</p>
+<div id="weekly-calendar">
+  <div class="calendar-header">
+    <div>Time</div>
+    <div>Mon</div>
+    <div>Tue</div>
+    <div>Wed</div>
+    <div>Thu</div>
+    <div>Fri</div>
+    <div>Sat</div>
+    <div>Sun</div>
+  </div>
+  <div id="calendar-time-grid"></div>
+</div>
 </div>
   <h3>Grocery List</h3>
   <ul id="grocery-list"></ul>
