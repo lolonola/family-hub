@@ -241,6 +241,22 @@ if (isParent) {
     document.getElementById("login-message").textContent = "Sign out failed. Please try again.";
   }
 });
+      const today = new Date();
+const monday = new Date(today);
+
+monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+
+for (let day = 0; day < 7; day++) {
+  const date = new Date(monday);
+  date.setDate(monday.getDate() + day);
+
+  document.getElementById(`calendar-day-${day}`).textContent =
+    date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric"
+    });
+}
       const calendarGrid = document.getElementById("calendar-time-grid");
 
 for (let hour = 7; hour <= 22; hour++) {
@@ -547,13 +563,13 @@ document.getElementById("clear-purchased-button").addEventListener("click", asyn
 <div id="weekly-calendar">
   <div class="calendar-header">
     <div>Time</div>
-    <div>Mon</div>
-    <div>Tue</div>
-    <div>Wed</div>
-    <div>Thu</div>
-    <div>Fri</div>
-    <div>Sat</div>
-    <div>Sun</div>
+    <div id="calendar-day-0">Mon</div>
+<div id="calendar-day-1">Tue</div>
+<div id="calendar-day-2">Wed</div>
+<div id="calendar-day-3">Thu</div>
+<div id="calendar-day-4">Fri</div>
+<div id="calendar-day-5">Sat</div>
+<div id="calendar-day-6">Sun</div>
   </div>
   <div id="calendar-time-grid"></div>
 </div>
