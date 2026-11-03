@@ -306,6 +306,7 @@ for (let hour = 7; hour <= 22; hour++) {
   const date = document.getElementById("event-date").value;
   const time = document.getElementById("event-time").value;
 
+  console.log("Event fields:", { title, date, time });
   if (!title || !date || !time) {
     alert("Please enter an event name, date, and time.");
     return;
