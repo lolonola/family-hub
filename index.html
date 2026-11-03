@@ -241,22 +241,45 @@ if (isParent) {
     document.getElementById("login-message").textContent = "Sign out failed. Please try again.";
   }
 });
-      const today = new Date();
-const monday = new Date(today);
+      let displayedMonday = new Date();
 
-monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+displayedMonday.setDate(
+  displayedMonday.getDate() - ((displayedMonday.getDay() + 6) % 7)
+);
 
-for (let day = 0; day < 7; day++) {
-  const date = new Date(monday);
-  date.setDate(monday.getDate() + day);
+function updateCalendarDates() {
+  for (let day = 0; day < 7; day++) {
+    const date = new Date(displayedMonday);
+    date.setDate(displayedMonday.getDate() + day);
 
-  document.getElementById(`calendar-day-${day}`).textContent =
-    date.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric"
-    });
+    document.getElementById(`calendar-day-${day}`).textContent =
+      date.toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric"
+      });
+  }
 }
+
+updateCalendarDates();
+
+document.getElementById("calendar-prev-week").addEventListener("click", () => {
+  displayedMonday.setDate(displayedMonday.getDate() - 7);
+  updateCalendarDates();
+});
+
+document.getElementById("calendar-next-week").addEventListener("click", () => {
+  displayedMonday.setDate(displayedMonday.getDate() + 7);
+  updateCalendarDates();
+});
+
+document.getElementById("calendar-today").addEventListener("click", () => {
+  displayedMonday = new Date();
+  displayedMonday.setDate(
+    displayedMonday.getDate() - ((displayedMonday.getDay() + 6) % 7)
+  );
+  updateCalendarDates();
+});
       const calendarGrid = document.getElementById("calendar-time-grid");
 
 for (let hour = 7; hour <= 22; hour++) {
@@ -560,6 +583,11 @@ document.getElementById("clear-purchased-button").addEventListener("click", asyn
   <h2>Family Dashboard</h2>
     <h3>Family Calendar</h3>
 <div id="family-calendar">
+<div class="calendar-navigation">
+  <button id="calendar-prev-week" type="button">← Previous Week</button>
+  <button id="calendar-today" type="button">Today</button>
+  <button id="calendar-next-week" type="button">Next Week →</button>
+</div>
 <div id="weekly-calendar">
   <div class="calendar-header">
     <div>Time</div>
