@@ -320,7 +320,7 @@ if (!eventSlot) {  alert("Please choose a time between 7:00 AM and 10:00 PM.");
 }
   const eventElement = document.createElement("div");
 eventElement.className = "calendar-event";
-eventElement.textContent = `${time} ${title}`;
+eventElement.textContent = `${eventDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} ${title}`;
 eventSlot.appendChild(eventElement);
 });
       document.getElementById("add-grocery-button").addEventListener("click", async () => {
