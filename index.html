@@ -1,0 +1,527 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Family Hub</title>
+  <style>
+    #chore-list {
+  list-style: none;
+  padding-left: 0;
+  margin-left: 0;
+}
+   .chore-item {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.5fr 110px;
+  align-items: center;
+  justify-items: start;
+  gap: 12px;
+  padding: 10px 0;
+  text-align: left;
+  border-bottom: 1px solid #bbb;
+}
+  .chore-header {
+  border-bottom: 2px solid #999;
+  font-weight: bold;
+}
+    #chore-list input[type="checkbox"] {
+  accent-color: #28a745;
+}
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      color: #253047;
+      text-align: center;
+      padding: 60px 20px;
+    }
+    h1 { font-size: 36px; }
+    p { font-size: 18px; }
+  </style>
+</head>
+<body>
+  <h1>Family Hub</h1>
+  <p>Our family's home dashboard</p>
+  <p id="status">Connecting to Firebase...</p>
+
+  <script type="module">
+    import { initializeApp } from
+      "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  getDocs,
+  collection,
+  addDoc,
+  onSnapshot,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+  arrayUnion
+} from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";    
+    import { firebaseConfig } from "./firebase-config.js";
+
+    try {
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      let unsubscribeGrocery = null;
+      let unsubscribeChores = null;
+      let latestChoreSnapshot = null;
+      onAuthStateChanged(auth, async (user) => {
+  const message = document.getElementById("login-message");
+        document.getElementById("family-dashboard").hidden = true;
+
+if (unsubscribeGrocery) {
+  unsubscribeGrocery();
+  unsubscribeGrocery = null;
+}
+if (unsubscribeChores) {
+  unsubscribeChores();
+  unsubscribeChores = null;
+}
+latestChoreSnapshot = null;
+document.getElementById("chore-list").replaceChildren();
+document.getElementById("grocery-list").replaceChildren();
+        document.getElementById("logout-button").hidden = !user;
+        document.getElementById("login-form").hidden = !!user;
+        document.getElementById("login-heading").hidden = !!user;
+
+  if (user) {
+    try {
+      const isParent = await checkParentRole(user);
+
+      if (isParent) {
+        const familyMembersSnapshot = await getDocs(collection(db, "familyMembers"));
+const familyNames = familyMembersSnapshot.docs.map(doc => doc.data().name);
+
+for (const selectId of ["chore-assignee", "chore-filter"]) {
+  const dropdown = document.getElementById(selectId);
+
+  dropdown.replaceChildren(dropdown.options[0]);
+
+  familyNames.forEach(name => {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    dropdown.appendChild(option);
+  });
+}
+        message.textContent = "Signed in as a parent!";
+        document.getElementById("family-dashboard").hidden = false;
+        unsubscribeGrocery = onSnapshot(
+  collection(db, "groceryItems"),
+  (snapshot) => {
+    displayGroceryItems(snapshot);
+  },
+  (error) => {
+    console.error("Unable to load grocery items:", error);
+    document.getElementById("grocery-list").textContent =
+      "Unable to load grocery items. Please try again.";
+  }
+);
+
+       unsubscribeChores = onSnapshot(
+  collection(db, "chores"),
+  (snapshot) => {
+    latestChoreSnapshot = snapshot;
+    displayChores(snapshot);
+  },
+  (error) => {
+    console.error("Unable to load chores:", error);
+    document.getElementById("chore-list").textContent =
+      "Unable to load chores. Please try again.";
+  }
+); 
+        const savedChorePerson = localStorage.getItem("selectedChorePerson");
+
+if (savedChorePerson) {
+  document.getElementById("chore-filter").value = savedChorePerson;
+}
+        document.getElementById("chore-filter").addEventListener("change", () => {
+  localStorage.setItem(
+    "selectedChorePerson",
+    document.getElementById("chore-filter").value
+  );
+
+  if (latestChoreSnapshot) {
+    displayChores(latestChoreSnapshot);
+  }
+});
+      } else {
+        message.textContent = "This account does not have parent access.";
+      }
+    } catch (error) {
+      message.textContent = "Unable to verify parent access.";
+      console.error(error);
+    }
+  } else {
+    message.textContent = "Not signed in.";
+  }
+});
+async function signInParent(email, password) {
+  return signInWithEmailAndPassword(auth, email, password);
+}
+      async function checkParentRole(user) {
+  const parentRef = doc(db, "parents", user.uid);
+  const parentSnap = await getDoc(parentRef);
+
+  return parentSnap.exists() && parentSnap.data().role === "parent";
+}
+      document.getElementById("login-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const email = document.getElementById("login-email").value;
+  const password = document.getElementById("login-password").value;
+  const message = document.getElementById("login-message");
+  
+  try {
+    const result = await signInParent(email, password);
+const isParent = await checkParentRole(result.user);
+
+if (isParent) {
+  message.textContent = "Signed in as a parent!";
+} else {
+  message.textContent = "This account does not have parent access.";
+}
+  } catch (error) {
+    message.textContent = "Sign-in failed. Please check your email and password.";
+  }
+});
+      document.getElementById("logout-button").addEventListener("click", async () => {
+  try {
+    await signOut(auth);
+    document.getElementById("login-message").textContent = "Signed out successfully!";
+    document.getElementById("login-password").value = "";
+  } catch (error) {
+    document.getElementById("login-message").textContent = "Sign out failed. Please try again.";
+  }
+});
+      document.getElementById("add-grocery-button").addEventListener("click", async () => {
+  const input = document.getElementById("grocery-input");
+  const item = input.value.trim();
+
+  if (item === "") return;
+  await addDoc(collection(db, "groceryItems"), {
+  name: item,
+  purchased: false,
+  createdAt: serverTimestamp()
+});
+
+  input.value = "";
+});
+      
+     document.getElementById("add-chore-button").addEventListener("click", async () => {
+  const choreInput = document.getElementById("chore-input");
+  const assigneeInput = document.getElementById("chore-assignee");
+  const dueDateInput = document.getElementById("chore-due-date");
+
+  const chore = choreInput.value.trim();
+  const assignee = assigneeInput.value.trim();
+  const dueDate = dueDateInput.value;
+  const repeat = document.getElementById("chore-repeat").value;
+
+  if (chore === "" || assignee === "") return;
+       if (repeat !== "none" && dueDate === "") {
+  alert("Please select a due date for recurring chores.");
+  return;
+}
+
+  await addDoc(collection(db, "chores"), {
+    name: chore,
+    assignedTo: assignee,
+    dueDate: dueDate,
+    repeat: repeat,
+    completed: false,
+    createdAt: serverTimestamp()
+  });
+
+  choreInput.value = "";
+  assigneeInput.value = "";
+  document.getElementById("chore-repeat").value = "none";
+  dueDateInput.value = "";
+}); 
+      function displayGroceryItems(snapshot) {
+  const list = document.getElementById("grocery-list");
+  list.replaceChildren();
+
+  snapshot.forEach((itemDoc) => {
+    const item = itemDoc.data();
+
+    const listItem = document.createElement("li");
+    const checkbox = document.createElement("input");
+
+    checkbox.type = "checkbox";
+    checkbox.checked = item.purchased === true;
+    checkbox.setAttribute("aria-label", "Purchased " + item.name);
+
+    checkbox.addEventListener("change", async () => {
+      await updateDoc(doc(db, "groceryItems", itemDoc.id), {
+        purchased: checkbox.checked
+      });
+    });
+
+    const label = document.createElement("label");
+    label.appendChild(checkbox);
+    label.textContent = " " + item.name;
+    label.style.textDecoration = checkbox.checked ? "line-through" : "none";
+
+    listItem.appendChild(label);
+
+    const deleteButton = document.createElement("button");
+    deleteButton.textContent = "Remove";
+    deleteButton.type = "button";
+
+    deleteButton.addEventListener("click", async () => {
+      await deleteDoc(doc(db, "groceryItems", itemDoc.id));
+    });
+
+    listItem.appendChild(deleteButton);
+    list.appendChild(listItem);
+  });
+}
+
+  function getNextChoreDueDate(dueDate, repeat) {
+  if (!dueDate || repeat === "none") return dueDate;
+
+  const [year, month, day] = dueDate.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+
+  if (repeat === "daily") {
+    date.setDate(date.getDate() + 1);
+  } else if (repeat === "weekly") {
+    date.setDate(date.getDate() + 7);
+  } else if (repeat === "monthly") {
+    const originalDay = date.getDate();
+    date.setDate(1);
+    date.setMonth(date.getMonth() + 1);
+    const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    date.setDate(Math.min(originalDay, lastDay));
+  }
+
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+
+  return `${yyyy}-${mm}-${dd}`;
+}    
+  function displayChores(snapshot) {
+
+  
+  const list = document.getElementById("chore-list");
+  list.replaceChildren();
+
+  snapshot.forEach((choreDoc) => {
+    const chore = choreDoc.data();
+    const selectedPerson = document.getElementById("chore-filter").value;
+
+if (selectedPerson !== "all" && chore.assignedTo !== selectedPerson) {
+  return;
+}
+
+    const listItem = document.createElement("li");
+    listItem.classList.add("chore-item");
+    const checkbox = document.createElement("input");
+
+    checkbox.type = "checkbox";
+    const isRecurringChore = ["daily", "weekly", "monthly"].includes(chore.repeat);
+    const completedThisCycle = isRecurringChore && chore.completedThisCycle === true;
+    const today = new Date();
+    const todayString =
+  today.getFullYear() + "-" +
+  String(today.getMonth() + 1).padStart(2, "0") + "-" +
+  String(today.getDate()).padStart(2, "0");
+    const shouldResetCycle =
+  completedThisCycle &&
+  chore.dueDate &&
+  chore.dueDate <= todayString;
+    if (shouldResetCycle) {
+  updateDoc(doc(db, "chores", choreDoc.id), {
+    completedThisCycle: false
+  }).catch((error) => {
+    console.error("Unable to reset recurring chore:", error);
+  });
+}
+    checkbox.checked =
+  chore.completed === true ||
+  (completedThisCycle && !shouldResetCycle);
+    if (completedThisCycle && !shouldResetCycle) {
+  checkbox.disabled = true;
+}
+    const choreRef = doc(db, "chores", choreDoc.id);
+    checkbox.addEventListener("change", async () => {
+    const isCompleting = checkbox.checked;
+    const isRecurring = chore.repeat && chore.repeat !== "none";
+    const shouldReschedule = isCompleting && isRecurring;
+      if (isCompleting && isRecurring && chore.dueDate) {
+  const today = new Date();
+  const todayString =
+    today.getFullYear() + "-" +
+    String(today.getMonth() + 1).padStart(2, "0") + "-" +
+    String(today.getDate()).padStart(2, "0");
+
+  if (chore.dueDate > todayString) {
+    checkbox.checked = false;
+    alert("This chore is not due yet.");
+    return;
+  }
+}
+    const nextDueDate = shouldReschedule
+  ? getNextChoreDueDate(chore.dueDate, chore.repeat)
+  : chore.dueDate;
+      const completionRecord = shouldReschedule
+  ? {
+      dueDate: chore.dueDate,
+      completedAt: new Date().toISOString(),
+      completedBy: auth.currentUser.uid
+    }
+  : null;
+     
+    await updateDoc(choreRef, {
+  completed: shouldReschedule ? false : checkbox.checked,
+  dueDate: nextDueDate,
+  ...(shouldReschedule ? { completedThisCycle: true } : {}),
+  ...(shouldReschedule
+    ? { completionHistory: arrayUnion(completionRecord) }
+    : {})
+});
+    });
+
+    const label = document.createElement("label");
+    label.appendChild(checkbox);
+    label.append(" " + chore.name);
+    label.style.textDecoration =
+      checkbox.checked ? "line-through" : "none";
+
+    listItem.appendChild(label);
+    const assigneeText = document.createElement("span");
+assigneeText.classList.add("chore-assignee");
+assigneeText.textContent = chore.assignedTo;
+assigneeText.style.textDecoration =
+  checkbox.checked ? "line-through" : "none";
+listItem.appendChild(assigneeText);
+    const dueDateText = document.createElement("span");
+dueDateText.classList.add("chore-due-date");
+dueDateText.textContent = chore.dueDate
+ ? new Date(chore.dueDate + "T12:00:00")
+      .toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      })
+  : "";
+listItem.appendChild(dueDateText);
+    const deleteButton = document.createElement("button");
+    deleteButton.textContent = "Remove";
+    deleteButton.type = "button";
+
+    deleteButton.addEventListener("click", async () => {
+    
+      await deleteDoc(doc(db, "chores", choreDoc.id));
+    });
+
+    listItem.appendChild(deleteButton);
+       list.appendChild(listItem);
+  });
+
+  if (list.children.length === 0) {
+    const message = document.createElement("li");
+    message.textContent = "No chores assigned";
+    message.style.padding = "15px 0";
+    list.appendChild(message);
+  }
+}
+document.getElementById("clear-purchased-button").addEventListener("click", async () => {
+  const snapshot = await getDocs(collection(db, "groceryItems"));
+  const deletePromises = [];
+
+  snapshot.forEach((itemDoc) => {
+    if (itemDoc.data().purchased === true) {
+      deletePromises.push(
+        deleteDoc(doc(db, "groceryItems", itemDoc.id))
+      );
+    }
+  });
+
+  await Promise.all(deletePromises);
+});
+      
+document.getElementById("clear-purchased-button").addEventListener("click", async () => {
+  const snapshot = await getDocs(collection(db, "groceryItems"));
+  const deletePromises = [];
+
+  snapshot.forEach((itemDoc) => {
+    if (itemDoc.data().purchased === true) {
+      deletePromises.push(
+        deleteDoc(doc(db, "groceryItems", itemDoc.id))
+      );
+    }
+  });
+
+  await Promise.all(deletePromises);
+});
+      document.getElementById("status").textContent =
+        "Firebase initialized successfully!";
+    } catch (error) {
+      document.getElementById("status").textContent =
+        "Firebase initialization failed. Check the browser console.";
+      console.error(error);
+    }
+  </script>
+<section id="parent-login">
+ <h2 id="login-heading">Parent Sign In</h2>
+  <form id="login-form">
+    <input type="email" id="login-email" placeholder="Email address" autocomplete="username" required>
+    <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required>
+    <button type="submit">Sign In</button>
+  </form>
+ <p id="login-message" role="status" aria-live="polite">Checking sign-in status...</p>
+ <button id="logout-button" type="button" hidden>Sign Out</button>
+</section>
+  <section id="family-dashboard" hidden>
+  <h2>Family Dashboard</h2>
+    <h3>Family Calendar</h3>
+<div id="family-calendar">
+  <p>Calendar coming soon.</p>
+</div>
+  <h3>Grocery List</h3>
+  <ul id="grocery-list"></ul>
+  <button type="button" id="clear-purchased-button">Clear Purchased</button>
+  <input type="text" id="grocery-input" placeholder="Add a grocery item">
+<button type="button" id="add-grocery-button">Add Item</button>
+<h3>Family Chore List</h3> 
+<input type="text" id="chore-input" placeholder="Enter a chore">
+
+<select id="chore-assignee">
+  <option value="">Assign to...</option>
+
+</select>
+
+<input type="date" id="chore-due-date">
+    <select id="chore-repeat">
+  <option value="none">One-time chore</option>
+  <option value="daily">Repeat daily</option>
+  <option value="weekly">Repeat weekly</option>
+  <option value="monthly">Repeat monthly</option>
+</select>
+
+<button type="button" id="add-chore-button">Add Chore</button>
+<label for="chore-filter">Show chores for:</label>
+<select id="chore-filter">
+  <option value="all">Everyone</option>
+  
+</select>
+<div class="chore-item chore-header">
+  <strong>Chore</strong>
+  <strong>Assigned To</strong>
+  <strong>Due Date</strong>
+  <span></span>
+</div>
+
+<ul id="chore-list"></ul>
+</section>
+</body>
+</html>
