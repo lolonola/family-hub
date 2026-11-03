@@ -207,7 +207,7 @@ if (isParent) {
 });
       document.getElementById("add-grocery-button").addEventListener("click", async () => {
   const input = document.getElementById("grocery-input");
-  const item = input.value.trim();
+  const item = input.value.trim().replace(/^./, char => char.toUpperCase());
 
   if (item === "") return;
   await addDoc(collection(db, "groceryItems"), {
