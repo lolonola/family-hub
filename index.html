@@ -495,7 +495,7 @@ document.getElementById("clear-purchased-button").addEventListener("click", asyn
   <h3>Grocery List</h3>
   <ul id="grocery-list"></ul>
   <button type="button" id="clear-purchased-button">Clear Purchased</button>
-  <input type="text" id="grocery-input" placeholder="Add a grocery item">
+  <input type="text" id="grocery-input" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('add-grocery-button').click();}"placeholder="Add a grocery item">
 <button type="button" id="add-grocery-button">Add Item</button>
 <h3>Family Chore List</h3> 
 <input type="text" id="chore-input" placeholder="Enter a chore">
