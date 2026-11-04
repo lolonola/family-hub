@@ -159,8 +159,9 @@ for (const selectId of ["chore-assignee", "chore-filter"]) {
           const result = await fetch(url, {
             headers: {Authorization: "Bearer " + token},
           });
-          const data = await result.json();
-          console.log("iCloud calendar test:", data);
+          const responseText = await result.text();
+          console.log("iCloud calendar HTTP status:", result.status);
+          console.log("iCloud calendar response:", responseText);
         } catch (error) {
           console.error("iCloud calendar test failed:", error);
         }
