@@ -152,6 +152,18 @@ for (const selectId of ["chore-assignee", "chore-filter"]) {
   });
 }
         message.textContent = "Signed in as a parent!";
+
+        try {
+          const token = await user.getIdToken();
+          const url = "https:" + "//us-central1-family-hub-f0af9.cloudfunctions.net/getICloudEvents";
+          const result = await fetch(url, {
+            headers: {Authorization: "Bearer " + token},
+          });
+          const data = await result.json();
+          console.log("iCloud calendar test:", data);
+        } catch (error) {
+          console.error("iCloud calendar test failed:", error);
+        }
         document.getElementById("family-dashboard").hidden = false;
         unsubscribeGrocery = onSnapshot(
   collection(db, "groceryItems"),
